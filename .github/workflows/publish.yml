@@ -1,0 +1,143 @@
+name: 🚀 Auto Publish to NPM
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'package.json'
+      - 'src/**'
+      - 'dist/**'
+  workflow_dispatch:
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version-changed: ${{ steps.check.outputs.changed }}
+      current-version: ${{ steps.check.outputs.version }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: 🔍 Check if version changed
+        id: check
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          
+          if git diff HEAD~1 HEAD --name-only | grep -q "package.json"; then
+            PREV_VERSION=$(git show HEAD~1:package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8')).version")
+            if [ "$CURRENT_VERSION" != "$PREV_VERSION" ]; then
+              echo "changed=true" >> $GITHUB_OUTPUT
+              echo "✅ Version changed from $PREV_VERSION to $CURRENT_VERSION"
+            else
+              echo "changed=false" >> $GITHUB_OUTPUT
+              echo "ℹ️ Version unchanged: $CURRENT_VERSION"
+            fi
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ package.json not modified"
+          fi
+
+  build-and-test:
+    needs: check-version
+    if: needs.check-version.outputs.version-changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔨 Build project
+        run: npm run build
+
+      - name: 🧪 Run tests
+        run: npm test
+
+      - name: ✅ Validate build
+        run: |
+          if [ ! -f "dist/server.js" ]; then
+            echo "❌ Build failed: dist/server.js not found"
+            exit 1
+          fi
+          echo "✅ Build validation passed"
+
+  publish:
+    needs: [check-version, build-and-test]
+    if: needs.check-version.outputs.version-changed == 'true'
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔨 Build project
+        run: npm run build
+
+      - name: 🚀 Publish to NPM
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: 🏷️ Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.check-version.outputs.current-version }}
+          release_name: 🚀 Release v${{ needs.check-version.outputs.current-version }}
+          body: |
+            ## 🎉 New Release: v${{ needs.check-version.outputs.current-version }}
+            
+            ### 📦 NPM Package
+            ```bash
+            npm install -g nascoder-azure-ai-mcp-server@${{ needs.check-version.outputs.current-version }}
+            ```
+            
+            ### 📋 Changes
+            See [CHANGELOG.md](https://github.com/freelancernasimofficial/nascoder-azure-ai-foundry-mcp/blob/main/CHANGELOG.md) for detailed changes.
+            
+            ### 🔧 Installation & Usage
+            1. Install globally: `npm install -g nascoder-azure-ai-mcp-server`
+            2. Configure your Azure AI credentials
+            3. Add to Amazon Q CLI MCP configuration
+            
+            **Developed with ❤️ by [Freelancer Nasim](https://github.com/freelancernasimofficial)**
+          draft: false
+          prerelease: false
+
+      - name: 📢 Success notification
+        run: |
+          echo "🎉 Successfully published nascoder-azure-ai-mcp-server@${{ needs.check-version.outputs.current-version }} to NPM!"
+          echo "📦 Package: https://www.npmjs.com/package/nascoder-azure-ai-mcp-server"
+          echo "🏷️ Release: https://github.com/freelancernasimofficial/nascoder-azure-ai-foundry-mcp/releases/tag/v${{ needs.check-version.outputs.current-version }}"
+
+  notify-skip:
+    needs: check-version
+    if: needs.check-version.outputs.version-changed == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: ℹ️ Skip notification
+        run: |
+          echo "ℹ️ Skipping publish - version unchanged: ${{ needs.check-version.outputs.current-version }}"
+          echo "💡 To trigger publish, update the version in package.json"

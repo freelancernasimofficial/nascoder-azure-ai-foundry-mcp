@@ -202,16 +202,17 @@ What would you like me to help you with?`;
     }
   }
 
-  // Vision Analysis (unchanged - uses Cognitive Services)
+  // Vision Analysis - Fixed with correct Azure Computer Vision API v3.2
   async analyzeImage(imageUrl: string): Promise<VisionAnalysisResult> {
     try {
+      // Use the correct Azure Computer Vision API v3.2 endpoint
+      const visionEndpoint = this.servicesEndpoint.replace(/\/$/, '');
       const response = await axios.post(
-        `${this.servicesEndpoint}/computervision/imageanalysis:analyze`,
+        `${visionEndpoint}/vision/v3.2/analyze`,
         { url: imageUrl },
         {
           params: {
-            'api-version': '2024-02-01',
-            features: 'caption,read,tags,objects'
+            visualFeatures: 'Description,Tags,Objects,Categories,Faces,ImageType,Color'
           },
           headers: {
             'Ocp-Apim-Subscription-Key': this.apiKey,
@@ -221,33 +222,45 @@ What would you like me to help you with?`;
         }
       );
 
+      console.log('✅ Vision API Response:', JSON.stringify(response.data, null, 2));
+
       return {
-        description: response.data.captionResult?.text || 'Image analyzed successfully',
-        tags: response.data.tagsResult?.values?.map((tag: any) => tag.name) || [],
-        objects: response.data.objectsResult?.values?.map((obj: any) => ({
-          name: obj.tags[0]?.name || 'unknown',
-          confidence: obj.tags[0]?.confidence || 0,
-          boundingBox: [obj.boundingBox.x, obj.boundingBox.y, obj.boundingBox.w, obj.boundingBox.h]
+        description: response.data.description?.captions?.[0]?.text || 'Image analyzed successfully',
+        tags: response.data.tags?.map((tag: any) => tag.name) || [],
+        objects: response.data.objects?.map((obj: any) => ({
+          name: obj.object || 'unknown',
+          confidence: obj.confidence || 0,
+          boundingBox: obj.rectangle ? [obj.rectangle.x, obj.rectangle.y, obj.rectangle.w, obj.rectangle.h] : []
         })) || [],
-        text: response.data.readResult?.content || ''
+        text: response.data.description?.captions?.[0]?.text || '',
+        categories: response.data.categories?.map((cat: any) => ({
+          name: cat.name,
+          score: cat.score
+        })) || [],
+        faces: response.data.faces?.map((face: any) => ({
+          age: face.age,
+          gender: face.gender,
+          faceRectangle: face.faceRectangle
+        })) || [],
+        color: response.data.color || {},
+        imageType: response.data.imageType || {}
       };
     } catch (error: any) {
-      console.error('Vision analysis error:', error.response?.data || error.message);
+      console.error('❌ Vision analysis error:', error.response?.data || error.message);
+      console.error('❌ Full error:', error);
       
-      return {
-        description: `Demo: Vision analysis for ${imageUrl}`,
-        tags: ['demo', 'image', 'analysis'],
-        objects: [],
-        text: 'Vision service is configured but may need endpoint adjustment for full functionality'
-      };
+      // Throw the error instead of returning demo data
+      throw new Error(`Vision analysis failed: ${error.response?.data?.error?.message || error.message}`);
     }
   }
 
-  // Text Translation (unchanged - uses Cognitive Services)
+  // Text Translation - Fixed with correct Azure Translator API
   async translateText(text: string, targetLanguage: string, sourceLanguage?: string): Promise<TranslationResult> {
     try {
+      // Use the correct Azure Translator API endpoint
+      const translatorEndpoint = this.servicesEndpoint.replace(/\/$/, '');
       const response = await axios.post(
-        `${this.servicesEndpoint}/translator/text/v3.0/translate`,
+        `${translatorEndpoint}/translator/text/v3.0/translate`,
         [{ text }],
         {
           params: {
@@ -257,11 +270,14 @@ What would you like me to help you with?`;
           },
           headers: {
             'Ocp-Apim-Subscription-Key': this.apiKey,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Ocp-Apim-Subscription-Region': this.region
           },
           timeout: 30000
         }
       );
+
+      console.log('✅ Translation API Response:', JSON.stringify(response.data, null, 2));
 
       const translation = response.data[0];
       return {
@@ -271,25 +287,26 @@ What would you like me to help you with?`;
         confidence: translation.detectedLanguage?.score || 1.0
       };
     } catch (error: any) {
-      console.error('Translation error:', error.response?.data || error.message);
+      console.error('❌ Translation error:', error.response?.data || error.message);
+      console.error('❌ Full error:', error);
       
-      return {
-        translatedText: `[Demo Translation to ${targetLanguage}]: ${text}`,
-        sourceLanguage: sourceLanguage || 'auto',
-        targetLanguage,
-        confidence: 0.95
-      };
+      // Throw the error instead of returning demo data
+      throw new Error(`Translation failed: ${error.response?.data?.error?.message || error.message}`);
     }
   }
 
-  // Document Analysis (unchanged - uses Cognitive Services)
+  // Document Analysis - Fixed with correct Form Recognizer API
   async analyzeDocument(documentUrl: string): Promise<DocumentAnalysisResult> {
     try {
+      // Use the correct Form Recognizer API endpoint
+      const formRecognizerEndpoint = this.servicesEndpoint.replace(/\/$/, '');
+      
+      // Start the analysis
       const analyzeResponse = await axios.post(
-        `${this.servicesEndpoint}/formrecognizer/documentModels/prebuilt-layout:analyze`,
+        `${formRecognizerEndpoint}/formrecognizer/documentModels/prebuilt-layout:analyze`,
         { urlSource: documentUrl },
         {
-          params: { 'api-version': '2024-07-31-preview' },
+          params: { 'api-version': '2023-07-31' },
           headers: {
             'Ocp-Apim-Subscription-Key': this.apiKey,
             'Content-Type': 'application/json'
@@ -299,52 +316,79 @@ What would you like me to help you with?`;
       );
 
       const operationLocation = analyzeResponse.headers['operation-location'];
+      console.log('✅ Document analysis started, operation:', operationLocation);
       
-      // Simplified polling for demo
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Poll for results
+      let attempts = 0;
+      const maxAttempts = 10;
       
-      const resultResponse = await axios.get(operationLocation, {
-        headers: { 'Ocp-Apim-Subscription-Key': this.apiKey },
-        timeout: 30000
-      });
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+        
+        try {
+          const resultResponse = await axios.get(operationLocation, {
+            headers: { 'Ocp-Apim-Subscription-Key': this.apiKey },
+            timeout: 30000
+          });
+          
+          const result = resultResponse.data;
+          
+          if (result.status === 'succeeded') {
+            console.log('✅ Document analysis completed successfully');
+            
+            return {
+              content: result.analyzeResult?.content || `Document analysis completed for ${documentUrl}`,
+              pages: result.analyzeResult?.pages?.length || 1,
+              tables: result.analyzeResult?.tables?.map((table: any) => ({
+                rowCount: table.rowCount,
+                columnCount: table.columnCount,
+                cells: table.cells.map((cell: any) => ({
+                  text: cell.content,
+                  rowIndex: cell.rowIndex,
+                  columnIndex: cell.columnIndex
+                }))
+              })) || [],
+              keyValuePairs: result.analyzeResult?.keyValuePairs?.map((pair: any) => ({
+                key: pair.key.content,
+                value: pair.value?.content || '',
+                confidence: pair.confidence
+              })) || [],
+              paragraphs: result.analyzeResult?.paragraphs?.map((para: any) => ({
+                content: para.content,
+                boundingRegions: para.boundingRegions
+              })) || []
+            };
+          } else if (result.status === 'failed') {
+            throw new Error(`Document analysis failed: ${result.error?.message || 'Unknown error'}`);
+          }
+          
+          // Still running, continue polling
+          attempts++;
+          console.log(`⏳ Document analysis in progress... (attempt ${attempts}/${maxAttempts})`);
+          
+        } catch (pollError: any) {
+          console.error('❌ Error polling document analysis:', pollError.message);
+          attempts++;
+        }
+      }
       
-      const result = resultResponse.data;
-
-      return {
-        content: result.analyzeResult?.content || `Document analysis completed for ${documentUrl}`,
-        pages: result.analyzeResult?.pages?.length || 1,
-        tables: result.analyzeResult?.tables?.map((table: any) => ({
-          rowCount: table.rowCount,
-          columnCount: table.columnCount,
-          cells: table.cells.map((cell: any) => ({
-            text: cell.content,
-            rowIndex: cell.rowIndex,
-            columnIndex: cell.columnIndex
-          }))
-        })) || [],
-        keyValuePairs: result.analyzeResult?.keyValuePairs?.map((pair: any) => ({
-          key: pair.key.content,
-          value: pair.value?.content || '',
-          confidence: pair.confidence
-        })) || []
-      };
+      throw new Error('Document analysis timed out after maximum attempts');
+      
     } catch (error: any) {
-      console.error('Document analysis error:', error.response?.data || error.message);
+      console.error('❌ Document analysis error:', error.response?.data || error.message);
+      console.error('❌ Full error:', error);
       
-      return {
-        content: `Demo: Document analysis for ${documentUrl}`,
-        pages: 1,
-        tables: [],
-        keyValuePairs: []
-      };
+      // Throw the error instead of returning demo data
+      throw new Error(`Document analysis failed: ${error.response?.data?.error?.message || error.message}`);
     }
   }
 
-  // Content Safety (unchanged - uses Cognitive Services)
+  // Content Safety - Fixed with correct Azure Content Safety API
   async checkContentSafety(text: string): Promise<ContentSafetyResult> {
     try {
+      const contentSafetyEndpoint = this.servicesEndpoint.replace(/\/$/, '');
       const response = await axios.post(
-        `${this.servicesEndpoint}/contentsafety/text:analyze`,
+        `${contentSafetyEndpoint}/contentsafety/text:analyze`,
         { text },
         {
           params: { 'api-version': '2024-09-01' },
@@ -356,30 +400,32 @@ What would you like me to help you with?`;
         }
       );
 
+      console.log('✅ Content Safety API Response:', JSON.stringify(response.data, null, 2));
+
       return {
-        categoriesAnalysis: response.data.categoriesAnalysis || [],
-        blocklistsMatch: response.data.blocklistsMatch || []
-      };
-    } catch (error: any) {
-      console.error('Content safety error:', error.response?.data || error.message);
-      
-      return {
-        categoriesAnalysis: [
+        categoriesAnalysis: response.data.categoriesAnalysis || [
           { category: 'Hate', severity: 0 },
           { category: 'SelfHarm', severity: 0 },
           { category: 'Sexual', severity: 0 },
           { category: 'Violence', severity: 0 }
         ],
-        blocklistsMatch: []
+        blocklistsMatch: response.data.blocklistsMatch || []
       };
+    } catch (error: any) {
+      console.error('❌ Content safety error:', error.response?.data || error.message);
+      console.error('❌ Full error:', error);
+      
+      // Throw the error instead of returning demo data
+      throw new Error(`Content safety check failed: ${error.response?.data?.error?.message || error.message}`);
     }
   }
 
-  // Language Analysis (unchanged - uses Cognitive Services)
+  // Language Analysis - Fixed with correct Azure Language API
   async analyzeLanguage(text: string): Promise<any> {
     try {
+      const languageEndpoint = this.servicesEndpoint.replace(/\/$/, '');
       const response = await axios.post(
-        `${this.servicesEndpoint}/language/:analyze-text`,
+        `${languageEndpoint}/language/:analyze-text`,
         {
           kind: 'SentimentAnalysis',
           parameters: { modelVersion: 'latest' },
@@ -397,19 +443,27 @@ What would you like me to help you with?`;
         }
       );
 
+      console.log('✅ Language Analysis API Response:', JSON.stringify(response.data, null, 2));
+
       return response.data.results?.documents[0] || {
+        id: '1',
         sentiment: 'neutral',
-        confidenceScores: { positive: 0.5, neutral: 0.5, negative: 0.0 }
+        confidenceScores: { positive: 0.5, neutral: 0.5, negative: 0.0 },
+        sentences: [{
+          sentiment: 'neutral',
+          confidenceScores: { positive: 0.5, neutral: 0.5, negative: 0.0 },
+          offset: 0,
+          length: text.length,
+          text: text
+        }],
+        warnings: []
       };
     } catch (error: any) {
-      console.error('Language analysis error:', error.response?.data || error.message);
+      console.error('❌ Language analysis error:', error.response?.data || error.message);
+      console.error('❌ Full error:', error);
       
-      return {
-        sentiment: 'neutral',
-        confidenceScores: { positive: 0.6, neutral: 0.3, negative: 0.1 },
-        text: text,
-        analysis: 'Demo language analysis completed'
-      };
+      // Throw the error instead of returning demo data
+      throw new Error(`Language analysis failed: ${error.response?.data?.error?.message || error.message}`);
     }
   }
 

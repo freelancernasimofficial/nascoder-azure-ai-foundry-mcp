@@ -151,8 +151,12 @@ export class AzureAITools {
         features: z.array(z.enum(['caption', 'tags', 'objects', 'text'])).optional().describe('Specific features to analyze')
       }),
       handler: async (params) => {
-        const result = await this.azureClient.analyzeImage(params.imageUrl);
-        return this.formatResponse('Image Analysis', result);
+        try {
+          const result = await this.azureClient.analyzeImage(params.imageUrl);
+          return this.formatResponse('Image Analysis', result);
+        } catch (error: any) {
+          return this.formatErrorResponse('Image Analysis', error.message, params.imageUrl);
+        }
       }
     };
   }
@@ -167,12 +171,16 @@ export class AzureAITools {
         sourceLanguage: z.string().optional().describe('Source language code (auto-detected if not provided)')
       }),
       handler: async (params) => {
-        const result = await this.azureClient.translateText(
-          params.text, 
-          params.targetLanguage, 
-          params.sourceLanguage
-        );
-        return this.formatResponse('Translation', result);
+        try {
+          const result = await this.azureClient.translateText(
+            params.text, 
+            params.targetLanguage, 
+            params.sourceLanguage
+          );
+          return this.formatResponse('Translation', result);
+        } catch (error: any) {
+          return this.formatErrorResponse('Translation', error.message, `${params.text} -> ${params.targetLanguage}`);
+        }
       }
     };
   }
@@ -186,8 +194,12 @@ export class AzureAITools {
         modelId: z.string().optional().describe('Document model to use (default: prebuilt-layout)')
       }),
       handler: async (params) => {
-        const result = await this.azureClient.analyzeDocument(params.documentUrl);
-        return this.formatResponse('Document Analysis', result);
+        try {
+          const result = await this.azureClient.analyzeDocument(params.documentUrl);
+          return this.formatResponse('Document Analysis', result);
+        } catch (error: any) {
+          return this.formatErrorResponse('Document Analysis', error.message, params.documentUrl);
+        }
       }
     };
   }
@@ -201,8 +213,12 @@ export class AzureAITools {
         categories: z.array(z.enum(['Hate', 'SelfHarm', 'Sexual', 'Violence'])).optional().describe('Specific categories to check')
       }),
       handler: async (params) => {
-        const result = await this.azureClient.checkContentSafety(params.text);
-        return this.formatResponse('Content Safety Check', result);
+        try {
+          const result = await this.azureClient.checkContentSafety(params.text);
+          return this.formatResponse('Content Safety Check', result);
+        } catch (error: any) {
+          return this.formatErrorResponse('Content Safety Check', error.message, params.text.substring(0, 50) + '...');
+        }
       }
     };
   }
@@ -216,8 +232,12 @@ export class AzureAITools {
         features: z.array(z.enum(['sentiment', 'entities', 'keyPhrases', 'language'])).optional().describe('Analysis features to include')
       }),
       handler: async (params) => {
-        const result = await this.azureClient.analyzeLanguage(params.text);
-        return this.formatResponse('Language Analysis', result);
+        try {
+          const result = await this.azureClient.analyzeLanguage(params.text);
+          return this.formatResponse('Language Analysis', result);
+        } catch (error: any) {
+          return this.formatErrorResponse('Language Analysis', error.message, params.text.substring(0, 50) + '...');
+        }
       }
     };
   }
@@ -313,6 +333,17 @@ export class AzureAITools {
         reasoning: intent.reasoning
       } : undefined,
       timestamp: new Date().toISOString()
+    };
+  }
+
+  private formatErrorResponse(service: string, errorMessage: string, context?: string): any {
+    return {
+      service,
+      error: true,
+      message: errorMessage,
+      context: context,
+      timestamp: new Date().toISOString(),
+      suggestion: 'Please check your Azure AI service configuration and ensure the endpoints are accessible.'
     };
   }
 }

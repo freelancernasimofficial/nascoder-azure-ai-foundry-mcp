@@ -67,6 +67,17 @@ export interface VisionAnalysisResult {
     boundingBox: number[];
   }>;
   text?: string;
+  categories?: Array<{
+    name: string;
+    score: number;
+  }>;
+  faces?: Array<{
+    age: number;
+    gender: string;
+    faceRectangle: any;
+  }>;
+  color?: any;
+  imageType?: any;
 }
 
 export interface TranslationResult {
@@ -92,6 +103,10 @@ export interface DocumentAnalysisResult {
     key: string;
     value: string;
     confidence: number;
+  }>;
+  paragraphs?: Array<{
+    content: string;
+    boundingRegions: any[];
   }>;
 }
 

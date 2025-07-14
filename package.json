@@ -1,6 +1,6 @@
 {
   "name": "nascoder-azure-ai-mcp-server",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Professional Azure AI Foundry MCP Server - Developed by Freelancer Nasim with comprehensive testing and security best practices.",
   "type": "module",
   "main": "dist/server.js",
@@ -69,5 +69,8 @@
     "README.md",
     "LICENSE",
     "package.json"
-  ]
+  ],
+  "devDependencies": {
+    "@types/node": "^24.0.13"
+  }
 }

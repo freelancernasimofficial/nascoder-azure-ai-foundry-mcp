@@ -1,0 +1,70 @@
+{
+  "name": "nascoder-azure-ai-foundry-mcp",
+  "version": "1.0.0",
+  "description": "The first AI Foundry Project and Resources MCP Server - Developed by Freelancer Nasim. Intelligent multi-service Azure AI integration with auto-routing capabilities.",
+  "type": "module",
+  "main": "dist/server.js",
+  "bin": {
+    "nascoder-azure-ai-mcp": "dist/server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsc && node dist/server.js",
+    "test": "node test-real-models.sh"
+  },
+  "keywords": [
+    "azure",
+    "ai",
+    "foundry",
+    "mcp",
+    "server",
+    "nascoder",
+    "freelancer-nasim",
+    "openai",
+    "cognitive-services",
+    "multi-modal",
+    "auto-routing",
+    "intelligent-assistant",
+    "model-context-protocol",
+    "amazon-q"
+  ],
+  "author": {
+    "name": "Freelancer Nasim",
+    "email": "contact@freelancernasim.com",
+    "url": "https://github.com/freelancernasim"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/freelancernasim/nascoder-azure-ai-foundry-mcp.git"
+  },
+  "homepage": "https://github.com/freelancernasim/nascoder-azure-ai-foundry-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/freelancernasim/nascoder-azure-ai-foundry-mcp/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@azure-rest/ai-inference": "^1.0.0-beta.6",
+    "@azure/ai-projects": "^1.0.0-beta.10",
+    "@azure/identity": "^4.10.2",
+    "@modelcontextprotocol/sdk": "^1.15.1",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "openai": "^5.9.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsx": "^4.6.0",
+    "typescript": "^5.3.0"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ]
+}

@@ -210,7 +210,7 @@ What would you like me to help you with?`;
         { url: imageUrl },
         {
           params: {
-            'api-version': '2023-02-01-preview',
+            'api-version': '2024-02-01',
             features: 'caption,read,tags,objects'
           },
           headers: {
@@ -289,7 +289,7 @@ What would you like me to help you with?`;
         `${this.servicesEndpoint}/formrecognizer/documentModels/prebuilt-layout:analyze`,
         { urlSource: documentUrl },
         {
-          params: { 'api-version': '2023-07-31' },
+          params: { 'api-version': '2024-07-31-preview' },
           headers: {
             'Ocp-Apim-Subscription-Key': this.apiKey,
             'Content-Type': 'application/json'
@@ -347,7 +347,7 @@ What would you like me to help you with?`;
         `${this.servicesEndpoint}/contentsafety/text:analyze`,
         { text },
         {
-          params: { 'api-version': '2023-10-01' },
+          params: { 'api-version': '2024-09-01' },
           headers: {
             'Ocp-Apim-Subscription-Key': this.apiKey,
             'Content-Type': 'application/json'
@@ -388,7 +388,7 @@ What would you like me to help you with?`;
           }
         },
         {
-          params: { 'api-version': '2022-05-01' },
+          params: { 'api-version': '2023-04-01' },
           headers: {
             'Ocp-Apim-Subscription-Key': this.apiKey,
             'Content-Type': 'application/json'

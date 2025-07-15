@@ -35,14 +35,12 @@ export class NascoderAzureAIClient {
     try {
       this.projectClient = new AIProjectClient(this.projectEndpoint, this.credential);
     } catch (error) {
-      console.log('Azure AI Projects client not available, using Azure OpenAI directly');
     }
   }
 
   // Nascoder Chat Completion using Azure OpenAI (Direct approach for your deployed models)
   async nascoder_chatCompletion(messages: Array<{role: string, content: string}>, deploymentName = 'model-router'): Promise<string> {
     try {
-      console.log(`🤖 Using deployment: ${deploymentName}`);
       
       const response = await this.openaiClient.chat.completions.create({
         model: deploymentName,
@@ -61,7 +59,6 @@ export class NascoderAzureAIClient {
       for (const deployment of deployments) {
         if (deployment !== deploymentName) {
           try {
-            console.log(`🔄 Trying alternative deployment: ${deployment}`);
             const response = await this.openaiClient.chat.completions.create({
               model: deployment,
               messages: messages as any,
@@ -70,7 +67,6 @@ export class NascoderAzureAIClient {
             });
             return response.choices[0]?.message?.content || 'No response generated';
           } catch (altError) {
-            console.log(`❌ ${deployment} failed, trying next...`);
           }
         }
       }
@@ -130,7 +126,6 @@ What would you like me to help you with?`;
             return { deployments, totalCount: deployments.length, endpoint: this.projectEndpoint };
           }
         } catch (error) {
-          console.log('Could not fetch from AI Projects, using known deployments');
         }
       }
 
@@ -167,7 +162,6 @@ What would you like me to help you with?`;
             });
           }
         } catch (error) {
-          console.log('Could not fetch connections');
         }
       }
 
@@ -222,7 +216,6 @@ What would you like me to help you with?`;
         }
       );
 
-      console.log('✅ Vision API Response:', JSON.stringify(response.data, null, 2));
 
       return {
         description: response.data.description?.captions?.[0]?.text || 'Image analyzed successfully',
@@ -277,7 +270,6 @@ What would you like me to help you with?`;
         }
       );
 
-      console.log('✅ Translation API Response:', JSON.stringify(response.data, null, 2));
 
       const translation = response.data[0];
       return {
@@ -316,7 +308,6 @@ What would you like me to help you with?`;
       );
 
       const operationLocation = analyzeResponse.headers['operation-location'];
-      console.log('✅ Document analysis started, operation:', operationLocation);
       
       // Poll for results
       let attempts = 0;
@@ -334,7 +325,6 @@ What would you like me to help you with?`;
           const result = resultResponse.data;
           
           if (result.status === 'succeeded') {
-            console.log('✅ Document analysis completed successfully');
             
             return {
               content: result.analyzeResult?.content || `Document analysis completed for ${documentUrl}`,
@@ -364,7 +354,6 @@ What would you like me to help you with?`;
           
           // Still running, continue polling
           attempts++;
-          console.log(`⏳ Document analysis in progress... (attempt ${attempts}/${maxAttempts})`);
           
         } catch (pollError: any) {
           console.error('❌ Error polling document analysis:', pollError.message);
@@ -400,7 +389,6 @@ What would you like me to help you with?`;
         }
       );
 
-      console.log('✅ Content Safety API Response:', JSON.stringify(response.data, null, 2));
 
       return {
         categoriesAnalysis: response.data.categoriesAnalysis || [
@@ -443,7 +431,6 @@ What would you like me to help you with?`;
         }
       );
 
-      console.log('✅ Language Analysis API Response:', JSON.stringify(response.data, null, 2));
 
       return response.data.results?.documents[0] || {
         id: '1',

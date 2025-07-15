@@ -15,7 +15,6 @@ export class AzureAIDiscovery {
   ) {}
 
   async discoverServices(): Promise<AzureAIService[]> {
-    console.log('🔍 Discovering Azure AI services...');
 
     // Define available services based on your setup
     const serviceDefinitions = [
@@ -86,9 +85,7 @@ export class AzureAIDiscovery {
         this.services.set(serviceDef.type, service);
         this.healthChecks.set(serviceDef.name, healthCheck);
         
-        console.log(`✅ ${serviceDef.name}: ${service.status}`);
       } catch (error) {
-        console.log(`❌ ${serviceDef.name}: unavailable`);
         
         const service: AzureAIService = {
           name: serviceDef.name,
@@ -106,7 +103,6 @@ export class AzureAIDiscovery {
   }
 
   async discoverModels(): Promise<ModelDeployment[]> {
-    console.log('🔍 Discovering deployed models...');
     
     try {
       // For now, we know about model-router deployment
@@ -126,7 +122,6 @@ export class AzureAIDiscovery {
         }
       ];
 
-      console.log(`✅ Found ${models.length} deployed model(s)`);
       return models;
     } catch (error) {
       console.error('❌ Failed to discover models:', error);
@@ -182,7 +177,6 @@ export class AzureAIDiscovery {
   }
 
   async refreshHealthChecks(): Promise<void> {
-    console.log('🔄 Refreshing service health checks...');
     
     for (const [type, service] of this.services.entries()) {
       try {

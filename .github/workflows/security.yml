@@ -1,0 +1,46 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * 1' # Weekly on Monday at 2 AM
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run npm audit
+      run: npm audit --audit-level=moderate
+      
+    - name: Secret scanning
+      run: |
+        echo "🔍 Comprehensive secret scanning..."
+        
+        # Check for common secret patterns
+        if find . -type f \( -name "*.js" -o -name "*.ts" -o -name "*.json" -o -name "*.md" \) \
+           -not -path "./node_modules/*" -not -path "./.git/*" \
+           -exec grep -l -E "(sk-|pk-|api[_-]?key.*=|secret.*=|token.*=|password.*=)" {} \; 2>/dev/null; then
+          echo "❌ SECURITY VIOLATION: Potential secrets found!"
+          exit 1
+        fi
+        
+        echo "✅ Secret scanning completed successfully"
+        
+    - name: Dependency vulnerability check
+      uses: actions/dependency-review-action@v3
+      if: github.event_name == 'pull_request'

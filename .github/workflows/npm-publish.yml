@@ -1,0 +1,94 @@
+name: Publish to NPM
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'package.json'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        registry-url: 'https://registry.npmjs.org'
+        
+    - name: Get package version
+      id: package-version
+      run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        
+    - name: Check if version exists on NPM
+      id: check-version
+      run: |
+        if npm view @nascoder/azure-ai-foundry-mcp@${{ steps.package-version.outputs.version }} version 2>/dev/null; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "⚠️ Version ${{ steps.package-version.outputs.version }} already exists on NPM"
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "✅ Version ${{ steps.package-version.outputs.version }} is new"
+        fi
+        
+    - name: Install dependencies
+      if: steps.check-version.outputs.exists == 'false'
+      run: npm ci
+      
+    - name: Build package
+      if: steps.check-version.outputs.exists == 'false'
+      run: npm run build
+      
+    - name: Run tests
+      if: steps.check-version.outputs.exists == 'false'
+      run: npm test --if-present
+      
+    - name: Security audit
+      if: steps.check-version.outputs.exists == 'false'
+      run: npm audit --audit-level=high --production
+      
+    - name: Final security scan
+      if: steps.check-version.outputs.exists == 'false'
+      run: |
+        echo "🔍 Final security scan before publication..."
+        
+        # Check for any potential secrets in built files
+        if find dist/ src/ -name "*.js" -o -name "*.ts" | xargs grep -E "(sk-|pk-|api[_-]?key.*=|secret.*=|token.*=)" 2>/dev/null | grep -v "process.env"; then
+          echo "❌ SECURITY VIOLATION: Secrets detected in source!"
+          exit 1
+        fi
+        
+        echo "✅ Security scan passed - ready for publication"
+        
+    - name: Publish to NPM
+      if: steps.check-version.outputs.exists == 'false'
+      run: |
+        echo "🚀 Publishing @nascoder/azure-ai-foundry-mcp@${{ steps.package-version.outputs.version }} to NPM..."
+        npm publish --access public
+        echo "✅ Successfully published to NPM!"
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        
+    - name: Create Git Tag
+      if: steps.check-version.outputs.exists == 'false'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag -a "v${{ steps.package-version.outputs.version }}" -m "Release v${{ steps.package-version.outputs.version }}"
+        git push origin "v${{ steps.package-version.outputs.version }}"
+        
+    - name: Notify success
+      if: steps.check-version.outputs.exists == 'false'
+      run: |
+        echo "🎉 SUCCESS! Package published successfully:"
+        echo "📦 NPM: https://www.npmjs.com/package/@nascoder/azure-ai-foundry-mcp"
+        echo "🏷️ Version: ${{ steps.package-version.outputs.version }}"
+        echo "📅 Published: $(date)"

@@ -1,6 +1,6 @@
 {
   "name": "nascoder-azure-ai-mcp",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Professional Azure AI Foundry MCP Server with comprehensive Azure AI services integration, intelligent routing, and advanced capabilities for AI assistants.",
   "type": "module",
   "main": "dist/server.js",

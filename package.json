@@ -1,7 +1,7 @@
 {
-  "name": "nascoder-azure-ai-mcp-server",
+  "name": "nascoder-azure-ai-mcp",
   "version": "2.1.0",
-  "description": "Professional Azure AI Foundry MCP Server - Developed by Freelancer Nasim with comprehensive testing and security best practices.",
+  "description": "Professional Azure AI Foundry MCP Server with comprehensive Azure AI services integration, intelligent routing, and advanced capabilities for AI assistants.",
   "type": "module",
   "main": "dist/server.js",
   "bin": {
@@ -11,35 +11,33 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "node dist/server.js",
-    "test": "npm run test:unit && npm run test:integration",
-    "test:unit": "echo 'Unit tests passed'",
-    "test:integration": "echo 'Integration tests passed'",
-    "validate": "npm run build && npm run test",
-    "prepublishOnly": "npm run validate"
+    "test": "echo 'No tests configured'",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "azure",
-    "ai",
-    "foundry",
+    "azure-ai",
+    "ai-foundry",
     "mcp",
     "server",
     "nascoder",
-    "freelancer-nasim",
-    "freelancernasimofficial",
-    "openai",
+    "ai-services",
     "cognitive-services",
     "multi-modal",
     "auto-routing",
-    "intelligent-assistant",
+    "ai-assistant",
     "model-context-protocol",
-    "amazon-q",
-    "tested",
+    "claude-mcp",
+    "amazon-q-mcp",
+    "llm-tools",
     "professional",
-    "production-ready"
+    "production-ready",
+    "azure-integration",
+    "ai-integration"
   ],
   "author": {
-    "name": "Freelancer Nasim",
-    "email": "contact@freelancernasim.com",
+    "name": "NasCoder",
+    "email": "freelancernasimofficial@gmail.com",
     "url": "https://github.com/freelancernasimofficial"
   },
   "license": "MIT",
@@ -71,6 +69,7 @@
     "package.json"
   ],
   "devDependencies": {
-    "@types/node": "^24.0.13"
+    "@types/node": "^24.0.13",
+    "typescript": "^5.0.0"
   }
 }

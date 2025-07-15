@@ -44,14 +44,14 @@ class NascoderAzureAIFoundryMCPServer {
 
     // Initialize Azure components
     this.azureClient = new NascoderAzureAIClient(
-      process.env.AZURE_AI_PROJECT_ENDPOINT || process.env.AZURE_AI_INFERENCE_ENDPOINT!,
+      process.env.AZURE_AI_PROJECT_ENDPOINT!,
       process.env.AZURE_AI_INFERENCE_API_KEY!,
       process.env.AZURE_AI_SERVICES_ENDPOINT!,
-      process.env.AZURE_REGION!
+      process.env.AZURE_REGION || 'eastus'
     );
 
     this.discovery = new AzureAIDiscovery(
-      process.env.AZURE_AI_PROJECT_ENDPOINT || process.env.AZURE_AI_INFERENCE_ENDPOINT!,
+      process.env.AZURE_AI_PROJECT_ENDPOINT!,
       process.env.AZURE_AI_INFERENCE_API_KEY!,
       process.env.AZURE_AI_SERVICES_ENDPOINT!,
       process.env.AZURE_SPEECH_STT_ENDPOINT!,
@@ -65,17 +65,16 @@ class NascoderAzureAIFoundryMCPServer {
 
   private validateEnvironment(): void {
     const required = [
-      'AZURE_AI_INFERENCE_ENDPOINT',
+      'AZURE_AI_PROJECT_ENDPOINT',
       'AZURE_AI_INFERENCE_API_KEY',
-      'AZURE_AI_SERVICES_ENDPOINT',
-      'AZURE_SPEECH_STT_ENDPOINT',
-      'AZURE_SPEECH_TTS_ENDPOINT',
-      'AZURE_REGION'
+      'AZURE_AI_SERVICES_ENDPOINT'
     ];
 
     const missing = required.filter(key => !process.env[key]);
     if (missing.length > 0) {
       console.error('❌ Missing required environment variables:', missing.join(', '));
+      console.error('💡 Please set these in your .zshrc:');
+      missing.forEach(key => console.error(`   export ${key}="YOUR_${key}"`));
       process.exit(1);
     }
   }
